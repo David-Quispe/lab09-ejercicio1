@@ -10,6 +10,8 @@ from pathlib import Path
 BASE = "https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/"
 OUT = Path(__file__).parent / "app/src/main/assets/pokemon_index.json"
 CHART_OUT = Path(__file__).parent / "app/src/main/assets/type_chart.json"
+MOVE_NAMES_OUT = Path(__file__).parent / "app/src/main/assets/move_names_es.json"
+ITEM_NAMES_OUT = Path(__file__).parent / "app/src/main/assets/item_names_es.json"
 
 
 def rows(name):
@@ -39,6 +41,7 @@ for row in rows("pokemon.csv"):
     stats = pokemon_stats.get(pokemon_id, {})
     result.append({
         "id": pokemon_id,
+        "name": row["identifier"],
         "species": species_id,
         "default": row["is_default"] == "1",
         "generation": int(info.get("generation_id") or 0),
@@ -67,3 +70,11 @@ for type_id in range(1, 19):
     chart[item["name"]] = multipliers
 CHART_OUT.write_text(json.dumps(chart, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 print(f"{len(chart)} types -> {CHART_OUT} ({CHART_OUT.stat().st_size} bytes)")
+
+for csv_name, path, key in (
+    ("move_names.csv", MOVE_NAMES_OUT, "move_id"),
+    ("item_names.csv", ITEM_NAMES_OUT, "item_id"),
+):
+    translated = {row[key]: row["name"] for row in rows(csv_name) if row["local_language_id"] == "7"}
+    path.write_text(json.dumps(translated, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"{len(translated)} Spanish names -> {path}")

@@ -5,6 +5,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class PokemonRepository(
+    private val moveNames: Map<Int, String> = emptyMap(),
+    private val itemNames: Map<Int, String> = emptyMap(),
     private val api: PokeApi = Retrofit.Builder()
         .baseUrl("https://pokeapi.co/api/v2/")
         .addConverterFactory(GsonConverterFactory.create())
@@ -90,7 +92,8 @@ class PokemonRepository(
             val detail = slot.versionGroupDetails.firstOrNull {
                 it.versionGroup.name == version && it.moveLearnMethod.name in setOf("level-up", "machine")
             } ?: return@mapNotNull null
-            LearnedMove(displayName(slot.move.name), detail.moveLearnMethod.name, detail.levelLearnedAt)
+            LearnedMove(moveNames[slot.move.id] ?: displayName(slot.move.name),
+                detail.moveLearnMethod.name, detail.levelLearnedAt)
         }.sortedWith(compareBy<LearnedMove> { it.method != "level-up" }.thenBy { it.level }.thenBy { it.name })
         return PokemonProfile(
             pokemon = pokemon,
@@ -112,28 +115,35 @@ class PokemonRepository(
 
     private fun flattenEvolution(root: EvolutionNode): List<EvolutionStage> {
         val result = mutableListOf<EvolutionStage>()
-        fun visit(node: EvolutionNode) {
+        fun visit(node: EvolutionNode, parentId: Int? = null) {
             result += EvolutionStage(
                 speciesId = node.species.id,
                 name = displayName(node.species.name),
-                requirement = node.evolutionDetails.firstOrNull()?.let(::evolutionRequirement) ?: "Origen"
+                requirement = node.evolutionDetails.firstOrNull()?.let(::evolutionRequirement) ?: "Origen",
+                parentSpeciesId = parentId
             )
-            node.evolvesTo.forEach(::visit)
+            node.evolvesTo.forEach { visit(it, node.species.id) }
         }
         visit(root)
         return result
     }
 
-    private fun evolutionRequirement(detail: EvolutionDetail): String = when {
-        detail.item != null -> "Usar ${displayName(detail.item.name)}"
-        detail.minLevel != null -> "Nivel ${detail.minLevel}"
-        detail.trigger?.name == "trade" -> "Intercambio" +
-            (detail.heldItem?.let { " con ${displayName(it.name)}" } ?: "")
-        detail.minHappiness != null -> "Amistad alta"
-        detail.knownMove != null -> "Con ${displayName(detail.knownMove.name)}"
-        detail.location != null -> "En ${displayName(detail.location.name)}"
-        !detail.timeOfDay.isNullOrBlank() -> "Durante ${if (detail.timeOfDay == "day") "el día" else "la noche"}"
-        else -> displayName(detail.trigger?.name ?: "Condición especial")
+    private fun evolutionRequirement(detail: EvolutionDetail): String {
+        if (detail.item != null) return "Usar ${itemNames[detail.item.id] ?: displayName(detail.item.name)}"
+        val conditions = buildList {
+            if (detail.trigger?.name == "trade") add("Intercambio")
+            detail.minLevel?.let { add("Nivel $it") }
+            detail.minHappiness?.let { add("Amistad $it") }
+            detail.heldItem?.let { add("Con ${itemNames[it.id] ?: displayName(it.name)}") }
+            detail.knownMove?.let { add("Con ${moveNames[it.id] ?: displayName(it.name)}") }
+            detail.location?.let { add("En ${displayName(it.name)}") }
+            if (!detail.timeOfDay.isNullOrBlank()) {
+                add(if (detail.timeOfDay == "day") "De día" else "De noche")
+            }
+        }
+        return conditions.joinToString(" · ").ifBlank {
+            displayName(detail.trigger?.name ?: "Condición especial")
+        }
     }
 
     private suspend fun <T> request(primary: suspend () -> T, backup: suspend () -> T): T {

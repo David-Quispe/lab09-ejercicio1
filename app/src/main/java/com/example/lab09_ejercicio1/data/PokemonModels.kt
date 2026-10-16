@@ -122,7 +122,12 @@ data class EvolutionDetail(
     val location: NamedResource?
 )
 
-data class EvolutionStage(val speciesId: Int, val name: String, val requirement: String)
+data class EvolutionStage(
+    val speciesId: Int,
+    val name: String,
+    val requirement: String,
+    val parentSpeciesId: Int? = null
+)
 
 data class AbilityResponse(
     val names: List<LocalizedName>,
@@ -141,6 +146,7 @@ data class LearnedMove(val name: String, val method: String, val level: Int)
 
 data class PokemonIndexEntry(
     val id: Int,
+    val name: String,
     val species: Int,
     @SerializedName("default") val isDefault: Boolean,
     val generation: Int,

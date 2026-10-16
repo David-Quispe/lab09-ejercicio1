@@ -1,6 +1,8 @@
 package com.example.lab09_ejercicio1.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,33 +15,46 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.lab09_ejercicio1.data.PokemonProfile
+import com.example.lab09_ejercicio1.data.PokemonReferenceData
 import com.example.lab09_ejercicio1.data.PokemonStat
+import com.example.lab09_ejercicio1.data.artworkUrl
 import com.example.lab09_ejercicio1.data.displayName
 import com.example.lab09_ejercicio1.ui.theme.pokemonTypeColor
 import java.util.Locale
@@ -49,8 +64,12 @@ import java.util.Locale
 fun PokemonDetailScreen(
     id: Int,
     state: PokedexUiState,
+    reference: PokemonReferenceData,
     onLoad: (Int) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onFavorite: (Int) -> Unit,
+    onTeam: (Int) -> Unit,
+    onEvolutionClick: (Int) -> Unit
 ) {
     LaunchedEffect(id) { onLoad(id) }
     Scaffold(
@@ -85,16 +104,35 @@ fun PokemonDetailScreen(
                 }
             }
             state.profile != null -> {
-                ProfileContent(state.profile, innerPadding)
+                ProfileContent(
+                    state.profile, innerPadding, reference,
+                    state.profile.pokemon.id in state.favorites,
+                    state.profile.pokemon.id in state.team,
+                    onFavorite, onTeam, onEvolutionClick
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ProfileContent(profile: PokemonProfile, innerPadding: PaddingValues) {
+private fun ProfileContent(
+    profile: PokemonProfile,
+    innerPadding: PaddingValues,
+    reference: PokemonReferenceData,
+    favorite: Boolean,
+    inTeam: Boolean,
+    onFavorite: (Int) -> Unit,
+    onTeam: (Int) -> Unit,
+    onEvolutionClick: (Int) -> Unit
+) {
     val pokemon = profile.pokemon
     val accent = pokemonTypeColor(pokemon.types.firstOrNull()?.type?.name.orEmpty())
+    var shiny by remember(pokemon.id) { mutableStateOf(false) }
+    var showAllMoves by remember(pokemon.id) { mutableStateOf(false) }
+    val incoming = reference.types.map { attack ->
+        attack to reference.damage(attack, pokemon.types.map { it.type.name })
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -120,8 +158,8 @@ private fun ProfileContent(profile: PokemonProfile, innerPadding: PaddingValues)
                             Modifier.size(210.dp).background(accent.copy(alpha = 0.22f), CircleShape)
                         )
                         AsyncImage(
-                            model = profile.artworkUrl,
-                            contentDescription = "Ilustración de ${profile.displayName}",
+                            model = if (shiny) profile.shinyUrl ?: profile.artworkUrl else profile.artworkUrl,
+                            contentDescription = "${if (shiny) "Forma variocolor" else "Ilustración"} de ${profile.displayName}",
                             modifier = Modifier.size(220.dp),
                             contentScale = ContentScale.Fit
                         )
@@ -147,6 +185,29 @@ private fun ProfileContent(profile: PokemonProfile, innerPadding: PaddingValues)
                             }
                         }
                     }
+                    Spacer(Modifier.height(14.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        FilterChip(
+                            selected = shiny,
+                            onClick = { shiny = !shiny },
+                            enabled = profile.shinyUrl != null,
+                            label = { Text(if (shiny) "Variocolor activo" else "Ver variocolor") }
+                        )
+                        Spacer(Modifier.weight(1f))
+                        IconButton(onClick = { onFavorite(pokemon.id) }) {
+                            Icon(if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = if (favorite) "Quitar de capturados" else "Guardar en capturados")
+                        }
+                        IconButton(
+                            onClick = { onTeam(pokemon.id) },
+                            modifier = Modifier.semantics {
+                                contentDescription = if (inTeam) "Quitar del equipo" else "Añadir al equipo"
+                            }
+                        ) {
+                            PokeballMark(size = 24.dp,
+                                color = if (inTeam) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                    }
                 }
             }
         }
@@ -164,6 +225,22 @@ private fun ProfileContent(profile: PokemonProfile, innerPadding: PaddingValues)
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+        }
+
+        item {
+            Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(20.dp)) {
+                Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                    Text("Debilidades y resistencias", style = MaterialTheme.typography.titleLarge)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Daño recibido según los tipos actuales.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(12.dp))
+                    EffectivenessRow("Débil", incoming.filter { it.second > 1.0 })
+                    EffectivenessRow("Resiste", incoming.filter { it.second in 0.01..0.99 })
+                    EffectivenessRow("Inmune", incoming.filter { it.second == 0.0 })
                 }
             }
         }
@@ -207,21 +284,103 @@ private fun ProfileContent(profile: PokemonProfile, innerPadding: PaddingValues)
                 Column(Modifier.fillMaxWidth().padding(20.dp)) {
                     Text("Habilidades", style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.height(12.dp))
-                    pokemon.abilities.forEach { ability ->
+                    profile.abilityDetails.forEach { ability ->
                         Text(
-                            if (ability.isHidden) {
-                                "${displayName(ability.ability.name)} · oculta"
-                            } else {
-                                displayName(ability.ability.name)
-                            },
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            ability.name + if (ability.hidden) " · oculta" else "",
+                            style = MaterialTheme.typography.titleMedium
                         )
+                        Text(ability.description, style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(12.dp))
+                    }
+                }
+            }
+        }
+
+        item {
+            Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(20.dp)) {
+                Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                    Text("Movimientos", style = MaterialTheme.typography.titleLarge)
+                    Text("Por nivel o MT · ${profile.moveVersion?.let(::versionName) ?: "versión disponible"}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(12.dp))
+                    val shown = if (showAllMoves) profile.moves else profile.moves.take(16)
+                    shown.forEach { move ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
+                            Text(move.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                            Text(if (move.method == "level-up") "Nv. ${move.level}" else "MT",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                    if (profile.moves.size > 16) TextButton(onClick = { showAllMoves = !showAllMoves }) {
+                        Text(if (showAllMoves) "Ver menos" else "Ver los ${profile.moves.size} movimientos")
+                    }
+                }
+            }
+        }
+
+        if (profile.evolutions.isNotEmpty()) item {
+            Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(20.dp)) {
+                Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                    Text("Línea evolutiva", style = MaterialTheme.typography.titleLarge)
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        profile.evolutions.forEachIndexed { index, stage ->
+                            if (index > 0 && stage.parentSpeciesId == profile.evolutions[index - 1].speciesId) {
+                                Text("→", style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.primary)
+                            }
+                            val targetId = reference.defaultPokemonForSpecies(stage.speciesId)
+                            Column(
+                                modifier = Modifier.width(128.dp)
+                                    .clickable(enabled = targetId != null) { targetId?.let(onEvolutionClick) },
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                AsyncImage(
+                                    model = targetId?.let(::artworkUrl),
+                                    contentDescription = stage.name,
+                                    modifier = Modifier.size(105.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                                Text(stage.name, style = MaterialTheme.typography.labelLarge)
+                                Text(stage.requirement, style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun EffectivenessRow(label: String, values: List<Pair<String, Double>>) {
+    if (values.isEmpty()) return
+    Text(label, style = MaterialTheme.typography.titleMedium)
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        values.forEach { (type, multiplier) ->
+            Surface(
+                color = when (label) {
+                    "Débil" -> MaterialTheme.colorScheme.errorContainer
+                    "Resiste" -> MaterialTheme.colorScheme.secondaryContainer
+                    else -> MaterialTheme.colorScheme.surfaceVariant
+                },
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("${typeName(type)} ×${multiplier.toString().removeSuffix(".0")}",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
+    Spacer(Modifier.height(10.dp))
 }
 
 @Composable

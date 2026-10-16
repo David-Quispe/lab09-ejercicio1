@@ -63,3 +63,43 @@ fun statName(stat: String): String = when (stat) {
     "speed" -> "Velocidad"
     else -> displayName(stat)
 }
+
+fun generationName(generation: Int): String = when (generation) {
+    1 -> "Kanto · I"
+    2 -> "Johto · II"
+    3 -> "Hoenn · III"
+    4 -> "Sinnoh · IV"
+    5 -> "Teselia · V"
+    6 -> "Kalos · VI"
+    7 -> "Alola · VII"
+    8 -> "Galar · VIII"
+    9 -> "Paldea · IX"
+    else -> "Generación $generation"
+}
+
+fun eggGroupName(group: String): String = when (group) {
+    "monster" -> "Monstruo"
+    "water1" -> "Agua 1"
+    "water2" -> "Agua 2"
+    "water3" -> "Agua 3"
+    "bug" -> "Bicho"
+    "flying" -> "Volador"
+    "ground" -> "Campo"
+    "fairy" -> "Hada"
+    "plant" -> "Planta"
+    "humanshape" -> "Humanoide"
+    "mineral" -> "Mineral"
+    "indeterminate" -> "Amorfo"
+    "ditto" -> "Ditto"
+    "dragon" -> "Dragón"
+    "no-eggs" -> "Sin huevos"
+    else -> displayName(group)
+}
+
+fun versionName(version: String): String = when (version) {
+    "scarlet-violet" -> "Escarlata y Púrpura"
+    "sword-shield" -> "Espada y Escudo"
+    "sun-moon" -> "Sol y Luna"
+    "ultra-sun-ultra-moon" -> "Ultrasol y Ultraluna"
+    else -> displayName(version)
+}
