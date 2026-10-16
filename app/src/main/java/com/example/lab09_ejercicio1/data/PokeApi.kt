@@ -17,3 +17,15 @@ interface PokeApi {
     @GET("pokemon-species/{name}")
     suspend fun getSpecies(@Path("name") name: String): PokemonSpeciesResponse
 }
+
+// PokéAPI publica estos mismos recursos como archivos JSON en su repositorio api-data.
+interface PokeStaticApi {
+    @GET("pokemon/index.json")
+    suspend fun getPokemonList(): PokemonListResponse
+
+    @GET("pokemon/{id}/index.json")
+    suspend fun getPokemon(@Path("id") id: Int): PokemonResponse
+
+    @GET("pokemon-species/{id}/index.json")
+    suspend fun getSpecies(@Path("id") id: Int): PokemonSpeciesResponse
+}
