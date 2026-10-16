@@ -71,6 +71,8 @@ fun CatalogScreen(
     state: PokedexUiState,
     reference: PokemonReferenceData,
     favoritesOnly: Boolean,
+    darkTheme: Boolean,
+    onToggleTheme: () -> Unit,
     onLoad: () -> Unit,
     onQueryChange: (String) -> Unit,
     onShowMore: () -> Unit,
@@ -119,6 +121,7 @@ fun CatalogScreen(
                         Text(if (favoritesOnly) "Mis capturados" else "Pokédex", style = MaterialTheme.typography.titleLarge)
                     }
                 },
+                actions = { ThemeModeButton(darkTheme, onToggleTheme) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }

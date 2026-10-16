@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -31,6 +32,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.lab09_ejercicio1.ui.CatalogScreen
 import com.example.lab09_ejercicio1.ui.PokedexViewModel
+import com.example.lab09_ejercicio1.ui.PokedexUiState
 import com.example.lab09_ejercicio1.ui.PokemonDetailScreen
 import com.example.lab09_ejercicio1.ui.TeamScreen
 import com.example.lab09_ejercicio1.ui.theme.Lab09ejercicio1Theme
@@ -40,15 +42,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            Lab09ejercicio1Theme { PokedexApp() }
+            val viewModel: PokedexViewModel = viewModel()
+            val state by viewModel.uiState.collectAsState()
+            val darkTheme = state.darkThemeOverride ?: isSystemInDarkTheme()
+            Lab09ejercicio1Theme(darkTheme = darkTheme) {
+                PokedexApp(viewModel, state, darkTheme)
+            }
         }
     }
 }
 
 @Composable
-private fun PokedexApp(viewModel: PokedexViewModel = viewModel()) {
+private fun PokedexApp(viewModel: PokedexViewModel, state: PokedexUiState, darkTheme: Boolean) {
     val navController = rememberNavController()
-    val state by viewModel.uiState.collectAsState()
     val backStack by navController.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val snackbar = remember { SnackbarHostState() }
@@ -96,6 +102,8 @@ private fun PokedexApp(viewModel: PokedexViewModel = viewModel()) {
                         state = state,
                         reference = viewModel.reference,
                         favoritesOnly = favoritesOnly,
+                        darkTheme = darkTheme,
+                        onToggleTheme = { viewModel.toggleDarkTheme(darkTheme) },
                         onLoad = viewModel::loadCatalog,
                         onQueryChange = viewModel::updateQuery,
                         onShowMore = viewModel::showMore,
@@ -114,6 +122,8 @@ private fun PokedexApp(viewModel: PokedexViewModel = viewModel()) {
                 TeamScreen(
                     state = state,
                     reference = viewModel.reference,
+                    darkTheme = darkTheme,
+                    onToggleTheme = { viewModel.toggleDarkTheme(darkTheme) },
                     onExplore = { navController.navigateTopLevel("catalogo") },
                     onPokemonClick = { id -> navController.navigate("pokemon/$id") },
                     onRemove = viewModel::toggleTeam
@@ -125,6 +135,8 @@ private fun PokedexApp(viewModel: PokedexViewModel = viewModel()) {
                     id = id,
                     state = state,
                     reference = viewModel.reference,
+                    darkTheme = darkTheme,
+                    onToggleTheme = { viewModel.toggleDarkTheme(darkTheme) },
                     onLoad = viewModel::loadProfile,
                     onBack = { navController.popBackStack() },
                     onFavorite = viewModel::toggleFavorite,

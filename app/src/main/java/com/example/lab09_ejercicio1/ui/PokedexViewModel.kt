@@ -31,6 +31,7 @@ data class PokedexUiState(
     val sort: CatalogSort = CatalogSort.NUMBER,
     val favorites: Set<Int> = emptySet(),
     val team: List<Int> = emptyList(),
+    val darkThemeOverride: Boolean? = null,
     val notice: String? = null,
     val catalogLoading: Boolean = false,
     val catalogError: String? = null,
@@ -48,7 +49,10 @@ class PokedexViewModel(application: Application) : AndroidViewModel(application)
             favorites = preferences.getStringSet("favoritos", emptySet()).orEmpty()
                 .mapNotNull(String::toIntOrNull).toSet(),
             team = preferences.getString("equipo", "").orEmpty().split(',')
-                .mapNotNull(String::toIntOrNull).take(6)
+                .mapNotNull(String::toIntOrNull).take(6),
+            darkThemeOverride = if (preferences.contains("modo_oscuro")) {
+                preferences.getBoolean("modo_oscuro", false)
+            } else null
         )
     )
     val uiState = _uiState.asStateFlow()
@@ -88,6 +92,12 @@ class PokedexViewModel(application: Application) : AndroidViewModel(application)
         it.copy(generation = null, type = null, eggGroup = null, sort = CatalogSort.NUMBER, visibleCount = 24)
     }
     fun clearNotice() = _uiState.update { it.copy(notice = null) }
+
+    fun toggleDarkTheme(currentDark: Boolean) {
+        val next = !currentDark
+        preferences.edit().putBoolean("modo_oscuro", next).apply()
+        _uiState.update { it.copy(darkThemeOverride = next) }
+    }
 
     fun toggleFavorite(id: Int) {
         val next = _uiState.value.favorites.toMutableSet().apply {

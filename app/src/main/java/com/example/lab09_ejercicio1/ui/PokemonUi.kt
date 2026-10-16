@@ -2,14 +2,53 @@ package com.example.lab09_ejercicio1.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.lab09_ejercicio1.data.displayName
+import kotlin.math.cos
+import kotlin.math.sin
+
+@Composable
+fun ThemeModeButton(darkTheme: Boolean, onToggle: () -> Unit) {
+    val foreground = MaterialTheme.colorScheme.onBackground
+    val background = MaterialTheme.colorScheme.background
+    IconButton(
+        onClick = onToggle,
+        modifier = Modifier.semantics {
+            contentDescription = if (darkTheme) "Activar modo claro" else "Activar modo oscuro"
+        }
+    ) {
+        Canvas(Modifier.size(24.dp)) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            if (darkTheme) {
+                drawCircle(foreground, radius = size.minDimension * 0.22f, center = center)
+                repeat(8) { index ->
+                    val angle = index * Math.PI / 4.0
+                    val direction = Offset(cos(angle).toFloat(), sin(angle).toFloat())
+                    drawLine(
+                        color = foreground,
+                        start = center + direction * (size.minDimension * 0.34f),
+                        end = center + direction * (size.minDimension * 0.47f),
+                        strokeWidth = size.minDimension * 0.075f
+                    )
+                }
+            } else {
+                drawCircle(foreground, radius = size.minDimension * 0.39f, center = center)
+                drawCircle(background, radius = size.minDimension * 0.36f,
+                    center = Offset(size.width * 0.69f, size.height * 0.29f))
+            }
+        }
+    }
+}
 
 @Composable
 fun PokeballMark(

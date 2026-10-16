@@ -41,6 +41,8 @@ import com.example.lab09_ejercicio1.data.displayName
 fun TeamScreen(
     state: PokedexUiState,
     reference: PokemonReferenceData,
+    darkTheme: Boolean,
+    onToggleTheme: () -> Unit,
     onExplore: () -> Unit,
     onPokemonClick: (Int) -> Unit,
     onRemove: (Int) -> Unit
@@ -62,6 +64,7 @@ fun TeamScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Mi equipo", style = MaterialTheme.typography.titleLarge) },
+                actions = { ThemeModeButton(darkTheme, onToggleTheme) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }

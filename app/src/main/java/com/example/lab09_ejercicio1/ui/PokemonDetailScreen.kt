@@ -65,6 +65,8 @@ fun PokemonDetailScreen(
     id: Int,
     state: PokedexUiState,
     reference: PokemonReferenceData,
+    darkTheme: Boolean,
+    onToggleTheme: () -> Unit,
     onLoad: (Int) -> Unit,
     onBack: () -> Unit,
     onFavorite: (Int) -> Unit,
@@ -82,6 +84,7 @@ fun PokemonDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver al catálogo")
                     }
                 },
+                actions = { ThemeModeButton(darkTheme, onToggleTheme) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
