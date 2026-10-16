@@ -16,6 +16,12 @@ interface PokeApi {
 
     @GET("pokemon-species/{name}")
     suspend fun getSpecies(@Path("name") name: String): PokemonSpeciesResponse
+
+    @GET("evolution-chain/{id}")
+    suspend fun getEvolutionChain(@Path("id") id: Int): EvolutionChainResponse
+
+    @GET("ability/{id}")
+    suspend fun getAbility(@Path("id") id: Int): AbilityResponse
 }
 
 // PokéAPI publica estos mismos recursos como archivos JSON en su repositorio api-data.
@@ -28,4 +34,10 @@ interface PokeStaticApi {
 
     @GET("pokemon-species/{id}/index.json")
     suspend fun getSpecies(@Path("id") id: Int): PokemonSpeciesResponse
+
+    @GET("evolution-chain/{id}/index.json")
+    suspend fun getEvolutionChain(@Path("id") id: Int): EvolutionChainResponse
+
+    @GET("ability/{id}/index.json")
+    suspend fun getAbility(@Path("id") id: Int): AbilityResponse
 }
